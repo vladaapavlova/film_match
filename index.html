@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Что посмотрим</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E6EDF2; --paper:#FFFFFF; --ink:#1C2B39; --muted:#5E6F7E; --line:#C9D5DE;
+  --yes:#23895F; --no:#C8463F; --seen:#6A5FE0; --stub:#F2C94C;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#121A22; --paper:#1D2833; --ink:#E8EEF3; --muted:#9AAAB8; --line:#2E3C49;
+  --yes:#3DBA85; --no:#E5675F; --seen:#8F86F5; --stub:#D9B23E; } }
+:root[data-theme="dark"]{
+  --bg:#121A22; --paper:#1D2833; --ink:#E8EEF3; --muted:#9AAAB8; --line:#2E3C49;
+  --yes:#3DBA85; --no:#E5675F; --seen:#8F86F5; --stub:#D9B23E; }
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent}
+.app{max-width:440px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:16px 16px 24px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+h1{font:700 22px/1.1 Unbounded,"Arial Black",sans-serif;margin:0;letter-spacing:-.01em}
+.status{font-size:13px;color:var(--muted)}
+nav{display:flex;gap:6px;background:var(--paper);border-radius:14px;padding:4px;margin-bottom:18px;border:1px solid var(--line)}
+nav button{flex:1;border:0;background:transparent;color:var(--muted);font:600 14px Manrope,sans-serif;padding:9px 6px;border-radius:10px;cursor:pointer}
+nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--seen);outline-offset:2px}
+section[hidden]{display:none}
+
+/* deck */
+.deck{position:relative;height:min(58vh,440px);margin-bottom:18px}
+.ticket{position:absolute;inset:0;background:var(--paper);border-radius:20px;border:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;touch-action:none;user-select:none;cursor:grab;transition:transform .25s ease}
+.ticket.under{transform:scale(.95) translateY(10px);opacity:.7;pointer-events:none}
+.ticket.dragging{transition:none;cursor:grabbing}
+.ticket .main{flex:1;padding:24px 22px;display:flex;flex-direction:column;justify-content:flex-end;background:var(--fbg,var(--paper));color:var(--fink,var(--ink))}
+.ticket .genre{font-size:13px;font-weight:700;color:var(--facc,var(--muted));margin-bottom:auto}
+.ticket .cast{font-size:14px;margin:0 0 8px;opacity:.9}
+.more{display:inline-block;margin-top:12px;color:inherit;font-weight:700;font-size:14px;text-underline-offset:3px}
+.winner{height:100%;border-radius:20px;padding:26px 22px;display:flex;flex-direction:column;justify-content:flex-end;background:var(--fbg,var(--paper));color:var(--fink,var(--ink))}
+.winner .lead{font-weight:700;color:var(--facc,var(--yes));margin-bottom:auto}
+.winner .title{font:700 clamp(28px,9vw,40px)/1.05 Unbounded,"Arial Black",sans-serif;margin:0 0 10px}
+.winner .who{margin:0 0 14px;opacity:.9}
+.winner .again{align-self:flex-start;border:2px solid currentColor;background:transparent;color:inherit;font:700 15px Manrope,sans-serif;padding:10px 16px;border-radius:12px;cursor:pointer;margin-top:14px}
+.ticket .title{font:700 clamp(26px,8vw,36px)/1.08 Unbounded,"Arial Black",sans-serif;margin:0 0 10px;overflow-wrap:anywhere}
+.ticket .year{font-weight:700;opacity:.75;margin-bottom:6px}
+.ticket .note{opacity:.9;margin:0;max-height:7.5em;overflow:auto;font-size:15px}
+.ticket .stub{background:var(--stub);color:#1C2B39;padding:14px 22px;font-size:13px;font-weight:600;position:relative;border-top:2px dashed rgba(28,43,57,.35);display:flex;justify-content:space-between}
+.ticket .stub::before,.ticket .stub::after{content:"";position:absolute;top:-11px;width:20px;height:20px;border-radius:50%;background:var(--bg)}
+.ticket .stub::before{left:-11px}.ticket .stub::after{right:-11px}
+.stamp{position:absolute;top:22px;padding:6px 12px;border:3px solid;border-radius:10px;font:700 18px Unbounded,sans-serif;opacity:0;transform:rotate(-8deg);pointer-events:none}
+.stamp.yes{left:20px;color:var(--yes)} .stamp.no{right:20px;color:var(--no);transform:rotate(8deg)} .stamp.seen{left:50%;translate:-50% 0;color:var(--seen);transform:rotate(0)}
+.empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:2px dashed var(--line);border-radius:20px;padding:24px;color:var(--muted)}
+.empty strong{color:var(--ink);font-size:18px;margin-bottom:6px}
+.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.actions button{border:2px solid currentColor;background:var(--paper);border-radius:14px;padding:12px 6px;font:700 15px Manrope,sans-serif;cursor:pointer}
+.actions .no{color:var(--no)} .actions .seen{color:var(--seen)} .actions .yes{color:var(--yes)}
+.actions button:disabled{opacity:.35;cursor:default}
+.hint{font-size:13px;color:var(--muted);text-align:center;margin-top:12px}
+
+/* add */
+form{display:flex;flex-direction:column;gap:12px}
+label{font-weight:600;font-size:14px;display:flex;flex-direction:column;gap:6px}
+input,textarea{font:16px Manrope,sans-serif;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px}
+textarea{min-height:84px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 110px;gap:10px}
+.primary{border:0;background:var(--ink);color:var(--bg);font:700 16px Manrope,sans-serif;padding:14px;border-radius:14px;cursor:pointer}
+.toast{min-height:1.5em;font-size:14px;color:var(--yes);font-weight:600}
+.toast.err{color:var(--no)}
+
+/* results */
+h2{font:700 15px Unbounded,sans-serif;margin:20px 0 10px}
+h2:first-child{margin-top:0}
+.film{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px}
+.film.match{border:2px solid var(--yes)}
+.film .ft{font-weight:700;display:flex;justify-content:space-between;gap:10px}
+.film .ft span{color:var(--muted);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-size:13px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--bg)}
+.chip.yes{color:var(--yes)} .chip.no{color:var(--no)} .chip.seen{color:var(--seen)} .chip.wait{color:var(--muted)}
+.film .tools{display:flex;gap:14px;margin-top:8px}
+.link{border:0;background:none;padding:0;color:var(--muted);font:600 13px Manrope,sans-serif;text-decoration:underline;cursor:pointer}
+.muted{color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.ticket{transition:none}}
+.namebox{height:100%;display:flex;flex-direction:column;justify-content:center;gap:12px;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:24px}
+.namebox strong{font:700 20px Unbounded,sans-serif}
+.rules p{margin:0 0 8px}.rules b{white-space:nowrap}
+.final{margin:4px 0 6px;font-weight:700;color:var(--yes)}
+.actions{grid-template-columns:1fr 1fr}
+.actions.r1 .extra{display:grid}
+.extra{display:none;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
+.extra button{border:1.5px solid currentColor;background:var(--paper);border-radius:12px;padding:9px 4px;font:700 13px Manrope,sans-serif;cursor:pointer;line-height:1.2}
+.extra .rw{color:var(--seen)} .extra .sn{color:var(--muted)} .extra .hn{color:#8E1F1F}
+.extra button:disabled{opacity:.35}
+.stamp.rewatch{left:50%;translate:-50% 0;color:var(--seen);transform:none}
+.stamp.hardno{left:50%;translate:-50% 0;top:auto;bottom:70px;color:#8E1F1F;transform:none}
+.evhead{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin-bottom:12px;font-size:14px}
+.evhead b{font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1.5px solid var(--line);background:var(--paper);color:var(--ink);font:600 14px Manrope,sans-serif;padding:7px 12px;border-radius:999px;cursor:pointer}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip.off{background:var(--no);color:#fff;border-color:var(--no)}
+.field{margin-bottom:14px}.field>span{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
+.count{font-weight:700;color:var(--muted);margin:4px 0 12px}
+.list{display:flex;flex-direction:column;gap:8px}
+.row-item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.row-item .t{font-weight:700}.row-item .s{font-size:13px;color:var(--muted)}
+.row-item button{border:0;background:none;color:var(--muted);font:600 13px Manrope,sans-serif;text-decoration:underline;cursor:pointer;white-space:nowrap}
+.pickbtn{border:0;background:var(--yes);color:#fff;font:700 14px Manrope,sans-serif;padding:8px 12px;border-radius:10px;cursor:pointer;white-space:nowrap}
+.seg{display:flex;gap:6px;margin-bottom:14px}.seg button{flex:1;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);font:700 14px Manrope,sans-serif;padding:9px;border-radius:12px;cursor:pointer}
+.seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+h3.sub{font:700 14px Unbounded,sans-serif;margin:18px 0 8px}
+.res{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.res .row-item{align-items:flex-start}
+.res .s{margin-top:2px}
+.addrow{display:grid;grid-template-columns:1fr 96px;gap:8px;margin-bottom:8px}
+.confirm{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:12px}
+.confirm h3{font:700 20px Unbounded,sans-serif;margin:0 0 4px}
+.check{display:flex;gap:8px;align-items:center;font-weight:600;margin:6px 0 12px}
+.check input{width:18px;height:18px}
+@media (min-width:900px){ #add{max-width:760px} }
+.pgrid,.hgrid{display:block}
+@media (min-width:900px){
+  .app{max-width:1120px;padding:28px 32px 40px}
+  h1{font-size:28px}
+  nav{max-width:520px}
+  #tab-tonight{max-width:660px;margin:0 auto;width:100%}
+  .deck{height:min(66vh,580px)}
+  .ticket .main{padding:32px 30px}
+  .ticket .title{font-size:42px}
+  .ticket .note{font-size:16px}
+  .pgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:32px;align-items:start}
+  .hgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:start}
+  .hgrid h3.sub{margin-top:0}
+  #history .seg{max-width:360px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header><h1>Что посмотрим</h1><span class="status" id="status">Подключаюсь…</span></header>
+  <nav role="tablist">
+    <button role="tab" data-tab="tonight" aria-selected="true">Вечер</button>
+    <button role="tab" data-tab="plan" aria-selected="false">Запланировать</button>
+    <button role="tab" data-tab="add" aria-selected="false">Добавить</button>
+    <button role="tab" data-tab="history" aria-selected="false">История</button>
+  </nav>
+
+  <section id="tab-tonight">
+    <div id="evhead"></div>
+    <div class="deck" id="deck"></div>
+    <div class="actions" id="actions">
+      <button class="no" data-k="no">Не хочу</button>
+      <button class="yes" data-k="yes">Хочу</button>
+    </div>
+    <div class="extra" id="extra">
+      <button class="rw" data-k="rewatch">Смотрел, пересмотрю</button>
+      <button class="sn" data-k="seenno">Смотрел, не хочу</button>
+      <button class="hn" data-k="hardno">Категорично нет</button>
+    </div>
+  </section>
+
+  <section id="tab-plan" hidden><div id="plan"></div></section>
+  <section id="tab-add" hidden><div id="add"></div></section>
+  <section id="tab-history" hidden><div id="history"></div></section>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, onSnapshot, setDoc, addDoc, updateDoc, deleteDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCI_YCGj9n7qg-OEYUc1Cc3OBO2QKrhbRo",
+  authDomain: "kino-fb174.firebaseapp.com",
+  projectId: "kino-fb174",
+  storageBucket: "kino-fb174.firebasestorage.app",
+  messagingSenderId: "693945319793",
+  appId: "1:693945319793:web:9d13160e23663d9ac5f6d0"
+};
+
+const PLAYERS = { vlada:"Влада", tim:"Тим" };
+const GENRES = ["драма","комедия","фантастика","триллер","детектив","мелодрама","криминал","боевик","ужасы","анимация"];
+const TONES = ["легкое","драматичное","напряженное"];
+const HIST = { rewatch:"Смотрел, пересмотрю", seenno:"Смотрел, не хочу пересматривать", hardno:"Категорично нет" };
+const CAND_LIMIT = 5;
+
+const S = { films:[], history:[], evenings:[], votes:[], me:null, ready:false, tab:"tonight", busy:false, topKey:null, started:{}, lastAdv:"", histView:null,
+  plan:{ date:"", mood:"", inc:[], exc:[], tone:[] } };
+let db = null;
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+try { S.me = localStorage.getItem("kino-player"); } catch (e) {}
+if (!PLAYERS[S.me]) S.me = null;
+S.histView = S.me || "vlada";
+S.plan.date = new Date().toLocaleDateString("sv-SE");
+
+function setStatus(t){ $("status").textContent = t; }
+function err(e){ setStatus(e && e.code === "permission-denied" ? "Нет доступа к базе" : "Не получилось сохранить, попробуй еще раз"); }
+
+/* tabs */
+document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => {
+  S.tab = b.dataset.tab;
+  document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-selected", x === b));
+  ["tonight","plan","add","history"].forEach(t => $("tab-"+t).hidden = t !== S.tab);
+  render(true);
+}));
+
+/* boot */
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+db = getFirestore(app);
+signInAnonymously(auth).catch(e => setStatus("Не удалось подключиться: " + e.code));
+onAuthStateChanged(auth, u => {
+  if (!u || S.ready) return;
+  S.ready = true; setStatus(S.me ? PLAYERS[S.me] : "");
+  const lost = () => setStatus("Связь потеряна, обнови страницу");
+  const sub = (name, key) => onSnapshot(collection(db, name), s => { S[key] = s.docs.map(d => ({ id:d.id, ...d.data() })); render(); }, lost);
+  sub("films","films"); sub("history","history"); sub("evenings","evenings"); sub("rvotes","votes");
+});
+
+/* model */
+const film = id => S.films.find(f => f.id === id);
+const hist = (p, fid) => { const h = S.history.find(x => x.player === p && x.filmId === fid); return h ? h.status : null; };
+const blocked = fid => Object.keys(PLAYERS).some(p => ["seenno","hardno"].includes(hist(p, fid)));
+function current(){
+  return S.evenings.filter(e => e.status !== "cancelled").sort((a,b) => (b.createdAt||0) - (a.createdAt||0))[0] || null;
+}
+const vote = (ev, p, fid) => S.votes.find(v => v.ev === ev.id && v.round === ev.round && v.player === p && v.filmId === fid);
+function deckFor(ev, p){
+  if (!ev || ev.status !== "round") return [];
+  return (ev.pool || []).filter(fid => film(fid) && !vote(ev, p, fid) && !(ev.round === 1 && ["seenno","hardno"].includes(hist(p, fid))));
+}
+function candidates(ev){
+  return (ev.pool || []).filter(fid => film(fid) && !blocked(fid) && Object.keys(PLAYERS).some(p => { const v = vote(ev, p, fid); return v && v.verdict === "yes"; }));
+}
+function matchesFilter(f, inc, exc, tone){
+  const g = (f.tags && f.tags.genres) || [];
+  const t = f.tags && f.tags.tone;
+  if (inc.length && !g.some(x => inc.includes(x))) return false;
+  if (exc.length && g.some(x => exc.includes(x))) return false;
+  if (tone.length && !tone.includes(t)) return false;
+  return true;
+}
+
+async function advance(ev){
+  if (!ev || ev.status !== "round") return;
+  let next = null;
+  const ps = Object.keys(PLAYERS);
+  if (ev.round === 1) {
+    const c = candidates(ev);
+    const bothDone = ps.every(p => deckFor(ev, p).length === 0);
+    if (c.length >= CAND_LIMIT || bothDone) {
+      const pick = c.slice(0, CAND_LIMIT);
+      if (pick.length === 0) next = { status:"empty" };
+      else if (pick.length === 1) next = { status:"done", winner:pick[0] };
+      else next = { round:2, pool:pick };
+    }
+  } else {
+    if (ps.every(p => deckFor(ev, p).length === 0)) {
+      const m = ev.pool.filter(fid => ps.every(p => { const v = vote(ev, p, fid); return v && v.verdict === "yes"; }));
+      if (m.length === 1) next = { status:"done", winner:m[0] };
+      else if (m.length > 1 && m.length < ev.pool.length) next = { round:ev.round + 1, pool:m };
+      else next = { status:"pick", pool: m.length ? m : ev.pool };
+    }
+  }
+  if (!next) return;
+  const key = ev.id + ":" + ev.round;
+  if (S.lastAdv === key) return;
+  S.lastAdv = key;
+  try { await updateDoc(doc(db, "evenings", ev.id), next); } catch (e) { S.lastAdv = ""; err(e); }
+}
+
+async function act(kind){
+  const ev = current(); if (!ev || !S.me || S.busy) return;
+  const fid = deckFor(ev, S.me)[0]; if (!fid) return;
+  if (ev.round > 1 && !["yes","no"].includes(kind)) return;
+  S.busy = true;
+  const card = $("deck").querySelector(".ticket:not(.under)");
+  if (card) {
+    const out = { yes:"translate(140%,0) rotate(18deg)", no:"translate(-140%,0) rotate(-18deg)", rewatch:"translate(0,-130%)", hardno:"translate(0,130%)", seenno:"scale(.8)" }[kind];
+    card.style.transform = out; card.style.opacity = kind === "seenno" ? "0" : "";
+    const st = card.querySelector(".stamp." + kind); if (st) st.style.opacity = 1;
+  }
+  const verdict = (kind === "yes" || kind === "rewatch") ? "yes" : "no";
+  try {
+    await setDoc(doc(db, "rvotes", [ev.id, ev.round, S.me, fid].join("__")), { ev:ev.id, round:ev.round, player:S.me, filmId:fid, verdict, at:Date.now() });
+    if (HIST[kind]) await setDoc(doc(db, "history", S.me + "__" + fid), { player:S.me, filmId:fid, film:film(fid).title, status:kind, at:Date.now() });
+  } catch (e) { err(e); }
+  setTimeout(() => { S.busy = false; render(true); }, 220);
+}
+
+/* render */
+function render(force){
+  const ev = current();
+  if (ev) advance(ev);
+  if (S.tab === "tonight") renderTonight(ev, force);
+  if (S.tab === "plan" && force) renderPlan();
+  if (S.tab === "plan" && !force) updCount();
+  if (S.tab === "history") renderHistory();
+  if (S.tab === "add" && force) renderAdd();
+}
+
+function setButtons(mode){
+  const a = $("actions"), x = $("extra");
+  a.style.display = mode ? "" : "none";
+  x.style.display = mode === "r1" ? "grid" : "none";
+  document.querySelectorAll("#actions button, #extra button").forEach(b => b.disabled = !mode);
+}
+
+function renderTonight(ev, force){
+  const deck = $("deck"); const head = $("evhead");
+  if (!S.me) { head.textContent = ""; setButtons(null); return whoAmI(deck); }
+  head.textContent = "";
+  if (!ev) {
+    setButtons(null); deck.textContent = "";
+    const e = el("div","empty"); e.append(el("strong",null,"Вечер не запланирован"), el("span",null,"Открой вкладку «Запланировать», выбери настроение и создай вечер."));
+    deck.append(e); return;
+  }
+  const h = el("div","evhead");
+  const b = el("b", null, fmtDate(ev.date) + (ev.status === "round" ? ", раунд " + ev.round : ""));
+  h.append(b); if (ev.mood) h.append(el("div", null, ev.mood));
+  head.append(h);
+
+  if (ev.status === "done") { setButtons(null); return winner(deck, film(ev.winner)); }
+  if (ev.status === "empty") {
+    setButtons(null); deck.textContent = "";
+    const e = el("div","empty"); e.append(el("strong",null,"Ничего не подошло"), el("span",null,"Ни одного фильма, который хотя бы один из вас хочет. Запланируй вечер заново или попроси добавить новые фильмы."));
+    deck.append(e); return;
+  }
+  if (ev.status === "pick") { setButtons(null); return pickList(deck, ev); }
+
+  const sk = ev.id + ":" + ev.round;
+  if (!S.started[sk]) { setButtons(null); return rules(deck, ev, sk); }
+  const my = deckFor(ev, S.me);
+  setButtons(my.length ? (ev.round === 1 ? "r1" : "r2") : null);
+  if (!force && S.busy) return;
+  const topKey = sk + ":" + (my[0] || "none") + ":" + my.length;
+  if (!force && topKey === S.topKey && deck.firstChild) return;
+  S.topKey = topKey;
+  deck.textContent = "";
+  if (!my.length) {
+    const other = Object.keys(PLAYERS).find(p => p !== S.me);
+    const left = deckFor(ev, other).length;
+    const e = el("div","empty");
+    e.append(el("strong",null,"Ты все пролистал(а)"), el("span",null, left ? PLAYERS[other] + ": осталось " + left + ". Раунд закончится, когда вы оба закончите." : "Подводим итоги раунда…"));
+    if (ev.round === 1) e.append(el("span",null,"Кандидатов сейчас: " + candidates(ev).length + " из " + CAND_LIMIT));
+    deck.append(e); return;
+  }
+  if (my[1]) deck.append(ticket(film(my[1]), my.length, true, ev));
+  const t = ticket(film(my[0]), my.length, false, ev);
+  deck.append(t); drag(t, ev.round);
+}
+
+function whoAmI(deck){
+  deck.textContent = "";
+  const box = el("div","namebox");
+  box.append(el("strong",null,"Кто ты?"), el("span","muted","Один раз на этом устройстве, чтобы история не путалась."));
+  Object.entries(PLAYERS).forEach(([k, n]) => {
+    const b = el("button","primary","Я " + n);
+    b.onclick = () => { S.me = k; S.histView = k; try { localStorage.setItem("kino-player", k); } catch (e) {} setStatus(n); render(true); };
+    box.append(b);
+  });
+  deck.append(box);
+}
+
+function rules(deck, ev, sk){
+  deck.textContent = "";
+  const box = el("div","namebox");
+  box.append(el("strong",null, ev.round === 1 ? "Как играем" : "Раунд " + ev.round));
+  const list = el("div","rules");
+  const rows = ev.round === 1 ? [
+    ["→ Вправо","хочу"],["← Влево","не хочу"],["↑ Вверх","смотрел и готов пересмотреть"],["↓ Вниз","категорично нет, больше не покажем"],["Кнопка","смотрел и пересматривать не хочу"]
+  ] : [["→ Вправо","хочу"],["← Влево","не хочу"]];
+  rows.forEach(([a, c]) => { const p = el("p"); const k = el("b", null, a); p.append(k, " — " + c); list.append(p); });
+  box.append(list);
+  box.append(el("p","final", ev.round === 1
+    ? "Если уже видел фильм, отвечай только кнопками «смотрел». Как только наберется " + CAND_LIMIT + " кандидатов, раунд закончится у обоих."
+    : "Остались только кандидаты. Совпадение у обоих — это фильм вечера."));
+  const b = el("button","primary","Поехали"); b.type = "button";
+  b.onclick = () => { S.started[sk] = true; render(true); };
+  box.append(b); deck.append(box);
+}
+
+function paint(e, f){ if (f.bg) e.style.setProperty("--fbg", f.bg); if (f.ink) e.style.setProperty("--fink", f.ink); if (f.accent) e.style.setProperty("--facc", f.accent); }
+function more(f){
+  const a = el("a","more","Подробнее на Кинопоиске"); a.target = "_blank"; a.rel = "noopener";
+  a.href = f.link || ("https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(f.title + (f.year ? " " + f.year : "")));
+  a.addEventListener("pointerdown", e => e.stopPropagation()); return a;
+}
+function ticket(f, left, under, ev){
+  const t = el("article","ticket" + (under ? " under" : "")); paint(t, f);
+  const m = el("div","main");
+  if (f.genre) m.append(el("div","genre", f.genre));
+  if (f.year) m.append(el("div","year", f.year));
+  m.append(el("h3","title", f.title));
+  if (f.director || f.cast) m.append(el("p","cast", [f.director ? "Режиссер: " + f.director : "", f.cast || ""].filter(Boolean).join(". ")));
+  if (f.note) m.append(el("p","note", f.note));
+  m.append(more(f));
+  const stub = el("div","stub"); stub.append(el("span",null, ev.round === 1 ? "Билет на вечер" : "Раунд " + ev.round), el("span",null,"осталось " + left));
+  [["yes","ХОЧУ"],["no","НЕТ"],["rewatch","ПЕРЕСМОТРЮ"],["hardno","НИКОГДА"],["seenno","ВИДЕЛ"]].forEach(([k, txt]) => t.append(el("div","stamp " + k, txt)));
+  t.append(m, stub); return t;
+}
+function drag(card, round){
+  let sx=0, sy=0, dx=0, dy=0, on=false;
+  const st = k => card.querySelector(".stamp." + k);
+  const clamp = v => Math.max(0, Math.min(1, v));
+  card.addEventListener("pointerdown", e => { on = true; sx = e.clientX; sy = e.clientY; card.classList.add("dragging"); card.setPointerCapture(e.pointerId); });
+  card.addEventListener("pointermove", e => {
+    if (!on) return; dx = e.clientX - sx; dy = e.clientY - sy;
+    if (round > 1) dy = 0;
+    card.style.transform = `translate(${dx}px,${dy}px) rotate(${dx/18}deg)`;
+    const vert = Math.abs(dx) < 60;
+    st("yes").style.opacity = clamp(dx/90); st("no").style.opacity = clamp(-dx/90);
+    st("rewatch").style.opacity = vert ? clamp(-dy/90) : 0; st("hardno").style.opacity = vert ? clamp(dy/90) : 0;
+  });
+  const end = () => {
+    if (!on) return; on = false; card.classList.remove("dragging");
+    const vert = Math.abs(dx) < 60;
+    if (dx > 100) act("yes"); else if (dx < -100) act("no");
+    else if (round === 1 && vert && dy < -100) act("rewatch");
+    else if (round === 1 && vert && dy > 100) act("hardno");
+    else { card.style.transform = ""; card.querySelectorAll(".stamp").forEach(s => s.style.opacity = 0); }
+    dx = dy = 0;
+  };
+  card.addEventListener("pointerup", end); card.addEventListener("pointercancel", end);
+}
+document.querySelectorAll("#actions button, #extra button").forEach(b => b.addEventListener("click", () => act(b.dataset.k)));
+document.addEventListener("keydown", e => {
+  if (S.tab !== "tonight" || /input|textarea/i.test(e.target.tagName)) return;
+  const k = { ArrowRight:"yes", ArrowLeft:"no", ArrowUp:"rewatch", ArrowDown:"hardno" }[e.key];
+  if (k) act(k);
+});
+
+function winner(deck, f){
+  deck.textContent = "";
+  if (!f) return;
+  const w = el("div","winner"); paint(w, f);
+  w.append(el("div","lead","Решено, смотрим"), el("h3","title", f.title), el("p","who", [f.year, f.genre].filter(Boolean).join(". ")), more(f));
+  deck.append(w);
+}
+function pickList(deck, ev){
+  deck.textContent = "";
+  const box = el("div","namebox");
+  box.append(el("strong",null,"Выбирайте вместе"), el("span","muted","Свайпы не дали одного фильма. Вот кандидаты, нажмите на тот, что смотрите."));
+  const list = el("div","list");
+  ev.pool.map(film).filter(Boolean).forEach(f => {
+    const r = el("div","row-item"); const t = el("div"); t.append(el("div","t", f.title), el("div","s", [f.year, f.genre].filter(Boolean).join(". ")));
+    const b = el("button","pickbtn","Смотрим это");
+    b.onclick = async () => { try { await updateDoc(doc(db, "evenings", ev.id), { status:"done", winner:f.id }); } catch (e) { err(e); } };
+    r.append(t, b); list.append(r);
+  });
+  box.append(list); deck.append(box);
+}
+
+/* plan */
+function chips(list, sel, other){
+  const w = el("div","chips");
+  list.forEach(g => {
+    const c = el("button","chip" + (sel.includes(g) ? " on" : ""), g); c.type = "button";
+    c.onclick = () => {
+      const i = sel.indexOf(g); if (i >= 0) sel.splice(i, 1); else { sel.push(g); if (other) { const j = other.indexOf(g); if (j >= 0) other.splice(j, 1); } }
+      renderPlan();
+    };
+    w.append(c);
+  });
+  return w;
+}
+function poolNow(){ const p = S.plan; return S.films.filter(f => matchesFilter(f, p.inc, p.exc, p.tone)).sort((a,b) => (a.order ?? 1000) - (b.order ?? 1000)); }
+function updCount(){ const c = $("plancount"); if (c) c.textContent = "Подходит фильмов: " + poolNow().length; }
+function renderPlan(){
+  const box = $("plan"); box.textContent = ""; const p = S.plan;
+  box.append(el("h2", null, "Новый вечер"));
+  const f1 = el("label","field"); f1.append(el("span",null,"Дата")); const d = el("input"); d.type = "date"; d.value = p.date; d.oninput = () => p.date = d.value; f1.append(d);
+  const f2 = el("label","field"); f2.append(el("span",null,"Настроение словами")); const m = el("input"); m.placeholder = "Например: что-то драматичное, без боевиков"; m.value = p.mood; m.oninput = () => p.mood = m.value; f2.append(m);
+  const f3 = el("div","field"); f3.append(el("span",null,"Хочется (любой из)"), chips(GENRES, p.inc, p.exc));
+  const f4 = el("div","field"); f4.append(el("span",null,"Точно не надо"), chips(GENRES, p.exc, p.inc));
+  f4.querySelectorAll(".chip.on").forEach(c => { c.classList.remove("on"); c.classList.add("off"); });
+  const f5 = el("div","field"); f5.append(el("span",null,"Тон"), chips(TONES, p.tone));
+  const cnt = el("div","count"); cnt.id = "plancount";
+  const go = el("button","primary","Создать вечер"); go.type = "button";
+  go.onclick = async () => {
+    const pool = poolNow().map(f => f.id);
+    if (!pool.length) { setStatus("Под эти фильтры нет фильмов"); return; }
+    const cur = current();
+    try {
+      if (cur && cur.status !== "done") await updateDoc(doc(db, "evenings", cur.id), { status:"cancelled" });
+      await addDoc(collection(db, "evenings"), { date:p.date, mood:p.mood.trim(), filters:{ inc:p.inc, exc:p.exc, tone:p.tone }, pool, round:1, status:"round", createdAt:Date.now(), by:S.me || "" });
+      document.querySelector('nav button[data-tab="tonight"]').click();
+    } catch (e) { err(e); }
+  };
+  const grid = el("div","pgrid"); const left = el("div"); const right = el("div");
+  left.append(f1, f2, f5, cnt, go, el("p","tip","Новые фильмы с тегами добавляет Claude: напиши ему, какой нужен вечер."));
+  right.append(f3, f4);
+  grid.append(left, right); box.append(grid);
+  updCount();
+}
+
+/* history */
+function renderHistory(){
+  const box = $("history"); box.textContent = "";
+  const seg = el("div","seg");
+  Object.entries(PLAYERS).forEach(([k, n]) => { const b = el("button", S.histView === k ? "on" : "", n); b.onclick = () => { S.histView = k; renderHistory(); }; seg.append(b); });
+  box.append(seg);
+  const hg = el("div","hgrid"); box.append(hg);
+  Object.entries(HIST).forEach(([st, label]) => {
+    const col = el("div"); hg.append(col);
+    col.append(el("h3","sub", label));
+    const items = S.history.filter(h => h.player === S.histView && h.status === st);
+    const list = el("div","list");
+    if (!items.length) list.append(el("div","muted","Пока пусто"));
+    items.forEach(h => {
+      const f = film(h.filmId); const r = el("div","row-item");
+      const t = el("div"); t.append(el("div","t", f ? f.title : h.film), el("div","s", f ? [f.year, f.genre].filter(Boolean).join(". ") : ""));
+      r.append(t);
+      if (h.player === S.me) { const u = el("button",null,"Убрать"); u.onclick = async () => { try { await deleteDoc(doc(db, "history", h.id)); } catch (e) { err(e); } }; r.append(u); }
+      list.append(r);
+    });
+    col.append(list);
+  });
+  box.append(el("h3","sub","Прошлые вечера"));
+  const evs = S.evenings.filter(e => e.status === "done").sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  const list = el("div","list");
+  if (!evs.length) list.append(el("div","muted","Пока пусто"));
+  evs.forEach(e => { const f = film(e.winner); const r = el("div","row-item"); const t = el("div"); t.append(el("div","t", f ? f.title : "—"), el("div","s", fmtDate(e.date) + (e.mood ? ". " + e.mood : ""))); r.append(t); list.append(r); });
+  box.append(list);
+  if (S.me) { const sw = el("button","link","Сменить игрока на этом устройстве"); sw.style.marginTop = "18px"; sw.onclick = () => { S.me = null; try { localStorage.removeItem("kino-player"); } catch (e) {} document.querySelector('nav button[data-tab="tonight"]').click(); }; box.append(sw); }
+}
+
+/* add film via Wikidata */
+const WD = "https://www.wikidata.org/w/api.php";
+const clean = t => String(t || "").replace(/\u0301/g, "").replace(/\u0451/g, "\u0435").replace(/\u0401/g, "\u0415").replace(/\s+/g, " ").trim();
+const PALETTES = [["#3A2620","#F7ECE2","#F08A3E"],["#7A4A22","#FBEFD9","#F2C14E"],["#C9452F","#FFF4EE","#FFD3C4"],["#24453A","#F3EFE2","#E9C46A"],["#1F2F4A","#EAF0FA","#8FB3FF"],["#4A1F3A","#FAEAF3","#F59AC8"],["#2E2E2E","#F2F2F2","#F5C542"],["#2F4A1F","#EEF6E6","#B8E07A"]];
+const GENRE_RX = { драма:/драм/i, комедия:/комеди/i, фантастика:/фантаст|научн/i, триллер:/триллер/i, детектив:/детектив|нуар/i, мелодрама:/мелодрам|романт/i, криминал:/криминал|гангстер/i, боевик:/боевик|экшн/i, ужасы:/ужас|хоррор/i, анимация:/анимац|мульт/i };
+async function wd(params){
+  const u = new URL(WD);
+  Object.entries({ ...params, format:"json", origin:"*" }).forEach(([k, v]) => u.searchParams.set(k, v));
+  const r = await fetch(u); if (!r.ok) throw new Error("wd " + r.status); return r.json();
+}
+async function searchFilms(q, year){
+  const s = await wd({ action:"query", list:"search", srsearch: q + " haswbstatement:P31=Q11424|P31=Q202866|P31=Q24869|P31=Q506240", srlimit:"8" });
+  const ids = ((s.query && s.query.search) || []).map(x => x.title);
+  if (!ids.length) return [];
+  const ents = (await wd({ action:"wbgetentities", ids:ids.join("|"), props:"labels|claims|sitelinks|descriptions", languages:"ru|en", sitefilter:"ruwiki|enwiki" })).entities || {};
+  const refs = new Set();
+  const items = ids.map(id => ents[id]).filter(x => x && x.claims).map(x => {
+    const c = x.claims;
+    const val = p => (c[p] || []).map(z => z.mainsnak && z.mainsnak.datavalue && z.mainsnak.datavalue.value).filter(Boolean);
+    const years = val("P577").map(v => parseInt(String(v.time).slice(1, 5), 10)).filter(Boolean);
+    const dir = val("P57").map(v => v.id).slice(0, 2), cast = val("P161").map(v => v.id).slice(0, 4), gen = val("P136").map(v => v.id).slice(0, 6);
+    [...dir, ...cast, ...gen].forEach(i => refs.add(i));
+    const L = x.labels || {}, D = x.descriptions || {};
+    const kp = val("P2603")[0];
+    const title = clean((L.ru || L.en || {}).value), year = years.length ? String(Math.min(...years)) : "";
+    return { id:x.id, title, desc:clean((D.ru || D.en || {}).value), year, dir, cast, gen, ruwiki: x.sitelinks && x.sitelinks.ruwiki && x.sitelinks.ruwiki.title,
+      kp: kp ? String(kp) : "", link: kp ? "https://www.kinopoisk.ru/film/" + kp + "/" : "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title + (year ? " " + year : "")) };
+  });
+  const lab = {}; const arr = [...refs];
+  for (let i = 0; i < arr.length; i += 50) {
+    const r = (await wd({ action:"wbgetentities", ids:arr.slice(i, i + 50).join("|"), props:"labels", languages:"ru|en" })).entities || {};
+    Object.values(r).forEach(z => { const l = z.labels || {}; lab[z.id] = clean((l.ru || l.en || {}).value); });
+  }
+  items.forEach(it => { it.director = it.dir.map(i => lab[i]).filter(Boolean).join(", "); it.castT = it.cast.map(i => lab[i]).filter(Boolean).join(", "); it.genreLabels = it.gen.map(i => lab[i]).filter(Boolean); });
+  if (year) items.sort((a, b) => (a.year === year ? 0 : 1) - (b.year === year ? 0 : 1));
+  return items.filter(i => i.title);
+}
+async function wikiSummary(title){
+  if (!title) return "";
+  try {
+    const r = await fetch("https://ru.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title));
+    if (!r.ok) return "";
+    const j = await r.json(); const t = clean(j.extract || "");
+    return (t.match(/[^.!?]+[.!?]+/g) || [t]).slice(0, 2).join(" ").trim();
+  } catch (e) { return ""; }
+}
+function kpLink(it){
+  const a = el("a","more", it.kp ? "Открыть на Кинопоиске" : "Поискать на Кинопоиске"); a.target = "_blank"; a.rel = "noopener"; a.href = it.link;
+  a.style.marginTop = "6px"; a.style.fontSize = "13px"; return a;
+}
+function mapGenres(it){
+  const text = (it.genreLabels || []).join(" ") + " " + (it.desc || "");
+  return GENRES.filter(g => GENRE_RX[g].test(text));
+}
+function guessTone(g){
+  if (g.some(x => ["триллер","ужасы","детектив","боевик"].includes(x))) return "напряженное";
+  if (g.some(x => ["комедия","анимация"].includes(x)) && !g.includes("драма")) return "легкое";
+  return "драматичное";
+}
+const A = { q:"", year:"", results:null, busy:false, msg:"", pick:null };
+function renderAdd(){
+  const box = $("add"); box.textContent = "";
+  box.append(el("h2", null, "Добавить фильм"));
+  box.append(el("p","lead","Напиши название, сайт найдет фильм в Википедии и покажет, тот ли это."));
+  const row = el("div","addrow");
+  const q = el("input"); q.placeholder = "Название фильма"; q.value = A.q; q.oninput = () => A.q = q.value;
+  const y = el("input"); y.placeholder = "Год"; y.inputMode = "numeric"; y.maxLength = 4; y.value = A.year; y.oninput = () => A.year = y.value;
+  row.append(q, y);
+  const go = el("button","primary", A.busy ? "Ищу…" : "Найти"); go.type = "button"; go.disabled = A.busy;
+  const run = async () => {
+    if (!A.q.trim() || A.busy) return;
+    A.busy = true; A.pick = null; A.msg = ""; renderAdd();
+    try { A.results = await searchFilms(A.q.trim(), A.year.trim()); if (!A.results.length) A.msg = "Ничего не нашлось. Попробуй другое написание или оригинальное название."; }
+    catch (e) { A.results = []; A.msg = "Не получилось связаться с Википедией. Проверь интернет или попробуй позже."; }
+    A.busy = false; renderAdd();
+  };
+  go.onclick = run; q.onkeydown = e => { if (e.key === "Enter") run(); };
+  box.append(row, go);
+  if (A.msg) box.append(el("p","toast err", A.msg));
+  if (A.pick) return box.append(confirmCard(A.pick));
+  if (A.results && A.results.length) {
+    box.append(el("h3","sub","Это он?"));
+    const list = el("div","res");
+    A.results.slice(0, 6).forEach(it => {
+      const r = el("div","row-item"); const t = el("div");
+      t.append(el("div","t", it.title + (it.year ? ", " + it.year : "")));
+      if (it.desc) t.append(el("div","s", it.desc));
+      if (it.director) t.append(el("div","s","Режиссер: " + it.director));
+      t.append(kpLink(it));
+      const b = el("button","pickbtn","Это он");
+      b.onclick = async () => {
+        b.disabled = true; b.textContent = "…";
+        const g = mapGenres(it);
+        A.pick = { ...it, genres:g, tone:guessTone(g), note: await wikiSummary(it.ruwiki), toEvening:true };
+        renderAdd();
+      };
+      r.append(t, b); list.append(r);
+    });
+    box.append(list);
+  }
+}
+function confirmCard(it){
+  const c = el("div","confirm");
+  c.append(el("h3", null, it.title), el("div","s muted", [it.year, it.director ? "режиссер " + it.director : ""].filter(Boolean).join(", ")));
+  if (it.castT) c.append(el("div","s muted", it.castT));
+  c.append(kpLink(it));
+  const dup = S.films.find(f => f.wikidata === it.id || (clean(f.title).toLowerCase() === it.title.toLowerCase() && f.year === it.year));
+  if (dup) { c.append(el("p","toast err","Этот фильм уже есть в библиотеке.")); }
+  const f1 = el("div","field"); f1.style.marginTop = "12px"; f1.append(el("span",null,"Жанры (проверь)"), chips(GENRES, it.genres)); 
+  f1.querySelectorAll(".chip").forEach(ch => ch.onclick = () => { const g = ch.textContent; const i = it.genres.indexOf(g); if (i >= 0) it.genres.splice(i, 1); else it.genres.push(g); renderAdd(); });
+  const f2 = el("div","field"); f2.append(el("span",null,"Тон"));
+  const tw = el("div","chips"); TONES.forEach(t => { const ch = el("button","chip" + (it.tone === t ? " on" : ""), t); ch.type = "button"; ch.onclick = () => { it.tone = t; renderAdd(); }; tw.append(ch); }); f2.append(tw);
+  const f3 = el("label","field"); f3.append(el("span",null,"Пара строк о фильме"));
+  const ta = el("textarea"); ta.value = it.note; ta.maxLength = 400; ta.oninput = () => it.note = ta.value; f3.append(ta);
+  c.append(f1, f2, f3);
+  const ev = current();
+  if (ev && ev.status === "round" && ev.round === 1) {
+    const lab = el("label","check"); const cb = el("input"); cb.type = "checkbox"; cb.checked = it.toEvening; cb.onchange = () => it.toEvening = cb.checked;
+    lab.append(cb, "Добавить и в текущий вечер"); c.append(lab);
+  }
+  const save = el("button","primary", dup ? "Уже в библиотеке" : "Добавить в библиотеку"); save.type = "button"; save.disabled = !!dup;
+  save.onclick = async () => {
+    if (!it.genres.length) { setStatus("Выбери хотя бы один жанр"); return; }
+    save.disabled = true;
+    const fid = "wd-" + it.id;
+    const pal = PALETTES[[...it.id].reduce((a, ch) => a + ch.charCodeAt(0), 0) % PALETTES.length];
+    const data = { title:it.title, year:it.year, genre: it.genres.map((g, i) => i ? g : g[0].toUpperCase() + g.slice(1)).join(", "), director:it.director, cast:it.castT, note:clean(it.note),
+      tags:{ genres:it.genres, tone:it.tone }, wikidata:it.id, link:it.link, kinopoisk:it.kp, bg:pal[0], ink:pal[1], accent:pal[2], order:1000, createdAt:Date.now(), by:S.me || "" };
+    try {
+      await setDoc(doc(db, "films", fid), data);
+      if (it.toEvening && ev && ev.status === "round" && ev.round === 1) await updateDoc(doc(db, "evenings", ev.id), { pool: arrayUnion(fid) });
+      Object.assign(A, { q:"", year:"", results:null, pick:null, msg:"" });
+      setStatus("«" + data.title + "» добавлен");
+      renderAdd();
+    } catch (e) { save.disabled = false; err(e); }
+  };
+  const back = el("button","link","Назад к результатам"); back.style.marginTop = "10px"; back.onclick = () => { A.pick = null; renderAdd(); };
+  c.append(save, back);
+  return c;
+}
+
+function fmtDate(d){
+  if (!d) return "Вечер";
+  const [y, m, day] = d.split("-").map(Number);
+  const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+  return day + " " + months[m - 1];
+}
+render(true);
+</script>
+</body>
+</html>
