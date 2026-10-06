@@ -191,7 +191,7 @@ const HIST = { rewatch:"Смотрел, пересмотрю", seenno:"Смот�
 const CAND_LIMIT = 5;
 
 const S = { films:[], history:[], evenings:[], votes:[], me:null, ready:false, tab:"tonight", busy:false, topKey:null, started:{}, lastAdv:"", histView:null,
-  plan:{ date:"", mood:"", inc:[], exc:[], tone:[] } };
+  plan:{ date:"", mood:"", inc:[], exc:[], tone:[], mode:"mood", sel:[], find:"" } };
 let db = null;
 const $ = id => document.getElementById(id);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -471,11 +471,38 @@ function chips(list, sel, other){
   });
   return w;
 }
-function poolNow(){ const p = S.plan; return S.films.filter(f => matchesFilter(f, p.inc, p.exc, p.tone)).sort((a,b) => (a.order ?? 1000) - (b.order ?? 1000)); }
-function updCount(){ const c = $("plancount"); if (c) c.textContent = "Подходит фильмов: " + poolNow().length; }
+function poolNow(){ const p = S.plan;
+  if (p.mode === "manual") return p.sel.map(film).filter(Boolean);
+  return S.films.filter(f => matchesFilter(f, p.inc, p.exc, p.tone)).sort((a,b) => (a.order ?? 1000) - (b.order ?? 1000)); }
+function updCount(){
+  const c = $("plancount"); if (c) c.textContent = (S.plan.mode === "manual" ? "Выбрано фильмов: " : "Подходит фильмов: ") + poolNow().length;
+  if (S.plan.mode === "manual") renderPickList();
+}
+function renderPickList(){
+  const box = $("picklist"); if (!box) return; box.textContent = "";
+  const p = S.plan; const q = norm(p.find || "");
+  const tag = f => { const ms = Object.keys(PLAYERS).map(k => [k, hist(k, f.id)]).filter(([, h]) => h === "seenno" || h === "hardno"); return ms.map(([k, h]) => PLAYERS[k] + ": " + (h === "hardno" ? "категорично нет" : "смотрел, не хочет")).join(", "); };
+  const list = S.films.filter(f => !q || norm(f.title).includes(q))
+    .sort((a, b) => (p.sel.includes(b.id) - p.sel.includes(a.id)) || a.title.localeCompare(b.title, "ru"));
+  if (!list.length) {
+    const raw = (p.find || "").trim();
+    if (raw.length >= 2) webBlock(box, raw); else box.append(el("div","muted","Ничего не нашлось."));
+  }
+  list.forEach(f => {
+    const r = el("label","row-item"); r.style.cursor = "pointer";
+    const t = el("div"); t.append(el("div","t", f.title), el("div","s", [f.year, f.genre].filter(Boolean).join(". ")));
+    const w = tag(f); if (w) t.append(el("div","s", "⚠ " + w));
+    const cb = el("input"); cb.type = "checkbox"; cb.checked = p.sel.includes(f.id); cb.style.width = "20px"; cb.style.height = "20px";
+    cb.onchange = () => { const i = p.sel.indexOf(f.id); if (i >= 0) p.sel.splice(i, 1); else p.sel.push(f.id); updCount(); };
+    r.append(t, cb); box.append(r);
+  });
+}
 function renderPlan(){
   const box = $("plan"); box.textContent = ""; const p = S.plan;
   box.append(el("h2", null, "Новый вечер"));
+  const seg = el("div","seg"); seg.style.maxWidth = "420px";
+  [["mood","По настроению"],["manual","Своя подборка"]].forEach(([k, n]) => { const b = el("button", p.mode === k ? "on" : "", n); b.type = "button"; b.onclick = () => { p.mode = k; renderPlan(); }; seg.append(b); });
+  box.append(seg);
   const f1 = el("label","field"); f1.append(el("span",null,"Дата")); const d = el("input"); d.type = "date"; d.value = p.date; d.oninput = () => p.date = d.value; f1.append(d);
   const f2 = el("label","field"); f2.append(el("span",null,"Настроение словами")); const m = el("input"); m.placeholder = "Например: что-то драматичное, без боевиков"; m.value = p.mood; m.oninput = () => p.mood = m.value; f2.append(m);
   const f3 = el("div","field"); f3.append(el("span",null,"Хочется (любой из)"), chips(GENRES, p.inc, p.exc));
@@ -486,14 +513,29 @@ function renderPlan(){
   const go = el("button","primary","Создать вечер"); go.type = "button";
   go.onclick = async () => {
     const pool = poolNow().map(f => f.id);
+    if (p.mode === "manual" && pool.length < 2) { setStatus("Выбери хотя бы 2 фильма"); return; }
     if (!pool.length) { setStatus("Под эти фильтры нет фильмов"); return; }
     const cur = current();
     try {
       if (cur && cur.status !== "done") await updateDoc(doc(db, "evenings", cur.id), { status:"cancelled" });
-      await addDoc(collection(db, "evenings"), { date:p.date, mood:p.mood.trim(), filters:{ inc:p.inc, exc:p.exc, tone:p.tone }, pool, round:1, status:"round", createdAt:Date.now(), by:S.me || "" });
+      await addDoc(collection(db, "evenings"), { date:p.date, mood:p.mood.trim(), filters: p.mode === "manual" ? { manual:true } : { inc:p.inc, exc:p.exc, tone:p.tone }, pool, round:1, status:"round", createdAt:Date.now(), by:S.me || "" });
+      p.sel = []; p.find = "";
       document.querySelector('nav button[data-tab="tonight"]').click();
     } catch (e) { err(e); }
   };
+  if (p.mode === "manual") {
+    m.placeholder = "Например: выбираем из моих пяти";
+    const f6 = el("div","field"); f6.append(el("span",null,"Отметь фильмы"));
+    const fi = el("input"); fi.placeholder = "Поиск по библиотеке"; fi.value = p.find; fi.style.width = "100%"; fi.style.marginBottom = "8px";
+    fi.oninput = () => { p.find = fi.value; renderPickList(); };
+    fi.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const raw = fi.value.trim(); if (raw.length >= 2 && !S.films.some(f => norm(f.title).includes(norm(raw)))) webSearch(raw); } };
+    const pl = el("div","list"); pl.id = "picklist"; pl.style.maxHeight = "60vh"; pl.style.overflow = "auto";
+    f6.append(fi, pl);
+    const grid = el("div","pgrid"); const left = el("div"); const right = el("div");
+    left.append(f1, f2, cnt, go, el("p","tip","Каждый из вас свайпает только эти фильмы. Нужного нет в библиотеке? Добавь его во вкладке «Добавить» или пришли Claude."));
+    right.append(f6); grid.append(left, right); box.append(grid);
+    updCount(); return;
+  }
   const grid = el("div","pgrid"); const left = el("div"); const right = el("div");
   left.append(f1, f2, f5, cnt, go, el("p","tip","Новые фильмы с тегами добавляет Claude: напиши ему, какой нужен вечер."));
   right.append(f3, f4);
@@ -540,13 +582,19 @@ const GENRE_RX = { драма:/драм/i, комедия:/комеди/i, фа�
 async function wd(params){
   const u = new URL(WD);
   Object.entries({ ...params, format:"json", origin:"*" }).forEach(([k, v]) => u.searchParams.set(k, v));
-  const r = await fetch(u); if (!r.ok) throw new Error("wd " + r.status); return r.json();
+  for (let i = 0; i < 4; i++) {
+    const r = await fetch(u);
+    if (r.ok) return r.json();
+    if (r.status !== 429 && r.status < 500) throw new Error("wd " + r.status);
+    await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+  }
+  throw new Error("wd busy");
 }
 async function searchFilms(q, year){
   const s = await wd({ action:"query", list:"search", srsearch: q + " haswbstatement:P31=Q11424|P31=Q202866|P31=Q24869|P31=Q506240", srlimit:"8" });
   const ids = ((s.query && s.query.search) || []).map(x => x.title);
   if (!ids.length) return [];
-  const ents = (await wd({ action:"wbgetentities", ids:ids.join("|"), props:"labels|claims|sitelinks|descriptions", languages:"ru|en", sitefilter:"ruwiki|enwiki" })).entities || {};
+  const ents = (await wd({ action:"wbgetentities", ids:ids.join("|"), props:"labels|claims|sitelinks|descriptions", languages:"ru|en" })).entities || {};
   const refs = new Set();
   const items = ids.map(id => ents[id]).filter(x => x && x.claims).map(x => {
     const c = x.claims;
@@ -557,7 +605,7 @@ async function searchFilms(q, year){
     const L = x.labels || {}, D = x.descriptions || {};
     const kp = val("P2603")[0];
     const title = clean((L.ru || L.en || {}).value), year = years.length ? String(Math.min(...years)) : "";
-    return { id:x.id, title, desc:clean((D.ru || D.en || {}).value), year, dir, cast, gen, ruwiki: x.sitelinks && x.sitelinks.ruwiki && x.sitelinks.ruwiki.title,
+    return { id:x.id, title, desc:clean((D.ru || D.en || {}).value), year, dir, cast, gen, ruwiki: x.sitelinks && x.sitelinks.ruwiki && x.sitelinks.ruwiki.title, sites: Object.keys(x.sitelinks || {}).length,
       kp: kp ? String(kp) : "", link: kp ? "https://www.kinopoisk.ru/film/" + kp + "/" : "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title + (year ? " " + year : "")) };
   });
   const lab = {}; const arr = [...refs];
@@ -566,8 +614,15 @@ async function searchFilms(q, year){
     Object.values(r).forEach(z => { const l = z.labels || {}; lab[z.id] = clean((l.ru || l.en || {}).value); });
   }
   items.forEach(it => { it.director = it.dir.map(i => lab[i]).filter(Boolean).join(", "); it.castT = it.cast.map(i => lab[i]).filter(Boolean).join(", "); it.genreLabels = it.gen.map(i => lab[i]).filter(Boolean); });
-  if (year) items.sort((a, b) => (a.year === year ? 0 : 1) - (b.year === year ? 0 : 1));
+  const nq = norm(q);
+  const score = it => (year && it.year === year ? 2000 : 0) + (norm(it.title) === nq ? 1000 : 0) + it.sites;
+  items.sort((a, b) => score(b) - score(a));
   return items.filter(i => i.title);
+}
+const norm = t => clean(t).toLowerCase().replace(/[«»"'.,:!?()\-–—]/g, " ").replace(/\s+/g, " ").trim();
+function parseQuery(raw){
+  const m = raw.trim().match(/^(.*?)[\s,(]*((?:19|20)\d{2})\)?$/);
+  return m && m[1].trim() ? { title:m[1].trim(), year:m[2] } : { title:raw.trim(), year:"" };
 }
 async function wikiSummary(title){
   if (!title) return "";
@@ -591,20 +646,27 @@ function guessTone(g){
   if (g.some(x => ["комедия","анимация"].includes(x)) && !g.includes("драма")) return "легкое";
   return "драматичное";
 }
-const A = { q:"", year:"", results:null, busy:false, msg:"", pick:null };
+const A = { q:"", results:null, busy:false, msg:"", pick:null, sure:null };
 function renderAdd(){
   const box = $("add"); box.textContent = "";
   box.append(el("h2", null, "Добавить фильм"));
-  box.append(el("p","lead","Напиши название, сайт найдет фильм в Википедии и покажет, тот ли это."));
-  const row = el("div","addrow");
-  const q = el("input"); q.placeholder = "Название фильма"; q.value = A.q; q.oninput = () => A.q = q.value;
-  const y = el("input"); y.placeholder = "Год"; y.inputMode = "numeric"; y.maxLength = 4; y.value = A.year; y.oninput = () => A.year = y.value;
-  row.append(q, y);
+  box.append(el("p","lead","Напиши название. Если фильмов с таким названием несколько, сайт переспросит, какой ты имеешь в виду."));
+  const row = el("div","field");
+  const q = el("input"); q.placeholder = "Название фильма, можно с годом"; q.value = A.q; q.oninput = () => A.q = q.value; q.style.width = "100%";
+  row.append(q);
   const go = el("button","primary", A.busy ? "Ищу…" : "Найти"); go.type = "button"; go.disabled = A.busy;
   const run = async () => {
     if (!A.q.trim() || A.busy) return;
-    A.busy = true; A.pick = null; A.msg = ""; renderAdd();
-    try { A.results = await searchFilms(A.q.trim(), A.year.trim()); if (!A.results.length) A.msg = "Ничего не нашлось. Попробуй другое написание или оригинальное название."; }
+    A.busy = true; A.pick = null; A.sure = null; A.msg = ""; renderAdd();
+    try {
+      const pq = parseQuery(A.q);
+      A.results = await searchFilms(pq.title, pq.year);
+      if (!A.results.length) A.msg = "Ничего не нашлось. Попробуй другое написание или оригинальное название.";
+      else {
+        const exact = A.results.filter(r => norm(r.title) === norm(pq.title) && (!pq.year || r.year === pq.year));
+        if (exact.length === 1 || (exact.length > 1 && exact[0].sites >= 3 * Math.max(1, exact[1].sites))) A.sure = exact[0];
+      }
+    }
     catch (e) { A.results = []; A.msg = "Не получилось связаться с Википедией. Проверь интернет или попробуй позже."; }
     A.busy = false; renderAdd();
   };
@@ -612,8 +674,24 @@ function renderAdd(){
   box.append(row, go);
   if (A.msg) box.append(el("p","toast err", A.msg));
   if (A.pick) return box.append(confirmCard(A.pick));
+  const choose = async (it, b) => {
+    if (b) { b.disabled = true; b.textContent = "…"; }
+    const g = mapGenres(it);
+    A.pick = { ...it, genres:g, tone:guessTone(g), note: await wikiSummary(it.ruwiki), toEvening:true };
+    renderAdd();
+  };
+  if (A.sure) {
+    const it = A.sure; const c = el("div","confirm");
+    c.append(el("div","s muted","Это он?"), el("h3", null, it.title + (it.year ? ", " + it.year : "")));
+    if (it.desc) c.append(el("div","s muted", it.desc));
+    if (it.director) c.append(el("div","s muted","Режиссер: " + it.director));
+    c.append(kpLink(it));
+    const yes = el("button","primary","Да, это он"); yes.type = "button"; yes.style.marginTop = "12px"; yes.onclick = () => choose(it, yes);
+    const no = el("button","link","Нет, показать другие варианты"); no.style.marginTop = "10px"; no.style.display = "block"; no.onclick = () => { A.sure = null; renderAdd(); };
+    c.append(yes, no); box.append(c); return;
+  }
   if (A.results && A.results.length) {
-    box.append(el("h3","sub","Это он?"));
+    box.append(el("h3","sub","Ты это имела в виду?"));
     const list = el("div","res");
     A.results.slice(0, 6).forEach(it => {
       const r = el("div","row-item"); const t = el("div");
@@ -622,12 +700,7 @@ function renderAdd(){
       if (it.director) t.append(el("div","s","Режиссер: " + it.director));
       t.append(kpLink(it));
       const b = el("button","pickbtn","Это он");
-      b.onclick = async () => {
-        b.disabled = true; b.textContent = "…";
-        const g = mapGenres(it);
-        A.pick = { ...it, genres:g, tone:guessTone(g), note: await wikiSummary(it.ruwiki), toEvening:true };
-        renderAdd();
-      };
+      b.onclick = () => choose(it, b);
       r.append(t, b); list.append(r);
     });
     box.append(list);
@@ -656,21 +729,80 @@ function confirmCard(it){
   save.onclick = async () => {
     if (!it.genres.length) { setStatus("Выбери хотя бы один жанр"); return; }
     save.disabled = true;
-    const fid = "wd-" + it.id;
-    const pal = PALETTES[[...it.id].reduce((a, ch) => a + ch.charCodeAt(0), 0) % PALETTES.length];
-    const data = { title:it.title, year:it.year, genre: it.genres.map((g, i) => i ? g : g[0].toUpperCase() + g.slice(1)).join(", "), director:it.director, cast:it.castT, note:clean(it.note),
-      tags:{ genres:it.genres, tone:it.tone }, wikidata:it.id, link:it.link, kinopoisk:it.kp, bg:pal[0], ink:pal[1], accent:pal[2], order:1000, createdAt:Date.now(), by:S.me || "" };
+    const { fid, data } = filmData(it);
     try {
       await setDoc(doc(db, "films", fid), data);
       if (it.toEvening && ev && ev.status === "round" && ev.round === 1) await updateDoc(doc(db, "evenings", ev.id), { pool: arrayUnion(fid) });
-      Object.assign(A, { q:"", year:"", results:null, pick:null, msg:"" });
+      Object.assign(A, { q:"", results:null, pick:null, sure:null, msg:"" });
       setStatus("«" + data.title + "» добавлен");
       renderAdd();
     } catch (e) { save.disabled = false; err(e); }
   };
-  const back = el("button","link","Назад к результатам"); back.style.marginTop = "10px"; back.onclick = () => { A.pick = null; renderAdd(); };
+  const back = el("button","link","Назад к вариантам"); back.style.marginTop = "10px"; back.onclick = () => { A.pick = null; A.sure = null; renderAdd(); };
   c.append(save, back);
   return c;
+}
+
+function filmData(it){
+  const fid = "wd-" + it.id;
+  const pal = PALETTES[[...it.id].reduce((a, ch) => a + ch.charCodeAt(0), 0) % PALETTES.length];
+  const gs = it.genres.length ? it.genres : ["драма"];
+  const data = { title:it.title, year:it.year, genre: gs.map((g, i) => i ? g : g[0].toUpperCase() + g.slice(1)).join(", "), director:it.director || "", cast:it.castT || "", note:clean(it.note || ""),
+    tags:{ genres:gs, tone:it.tone || guessTone(gs) }, wikidata:it.id, link:it.link, kinopoisk:it.kp || "", bg:pal[0], ink:pal[1], accent:pal[2], order:1000, createdAt:Date.now(), by:S.me || "" };
+  return { fid, data };
+}
+/* quick add from the picker */
+const W = { q:"", busy:false, results:null, sure:null, msg:"" };
+async function webSearch(q){
+  Object.assign(W, { q, busy:true, results:null, sure:null, msg:"" }); renderPickList();
+  try {
+    const pq = parseQuery(q);
+    W.results = await searchFilms(pq.title, pq.year);
+    if (!W.results.length) W.msg = "В Википедии тоже не нашлось. Попробуй оригинальное название.";
+    else {
+      const exact = W.results.filter(r => norm(r.title) === norm(pq.title) && (!pq.year || r.year === pq.year));
+      if (exact.length === 1 || (exact.length > 1 && exact[0].sites >= 3 * Math.max(1, exact[1].sites))) W.sure = exact[0];
+    }
+  } catch (e) { W.msg = "Не получилось связаться с Википедией, попробуй еще раз."; }
+  W.busy = false; renderPickList();
+}
+async function quickAdd(it, b){
+  if (S.films.some(f => f.wikidata === it.id)) { const f = S.films.find(f => f.wikidata === it.id); if (!S.plan.sel.includes(f.id)) S.plan.sel.push(f.id); S.plan.find = ""; resetW(); renderPlan(); return; }
+  if (b) { b.disabled = true; b.textContent = "Добавляю…"; }
+  const g = mapGenres(it);
+  const { fid, data } = filmData({ ...it, genres:g, tone:guessTone(g), note: await wikiSummary(it.ruwiki) });
+  try {
+    await setDoc(doc(db, "films", fid), data);
+    if (!S.plan.sel.includes(fid)) S.plan.sel.push(fid);
+    S.plan.find = ""; resetW(); setStatus("«" + data.title + "» добавлен и отмечен"); renderPlan();
+  } catch (e) { if (b) { b.disabled = false; b.textContent = "Добавить"; } err(e); }
+}
+function resetW(){ Object.assign(W, { q:"", busy:false, results:null, sure:null, msg:"" }); }
+function webBlock(box, q){
+  const filmLine = (it, label) => {
+    const r = el("div","row-item"); const t = el("div");
+    t.append(el("div","t", it.title + (it.year ? ", " + it.year : "")));
+    if (it.desc) t.append(el("div","s", it.desc));
+    if (it.director) t.append(el("div","s","Режиссер: " + it.director));
+    t.append(kpLink(it));
+    const b = el("button","pickbtn", label); b.type = "button"; b.onclick = e => { e.preventDefault(); quickAdd(it, b); };
+    r.append(t, b); return r;
+  };
+  if (W.q !== q || (!W.busy && !W.results && !W.msg)) {
+    box.append(el("div","muted","В библиотеке такого нет."));
+    const b = el("button","primary","Найти «" + q + "» в интернете и добавить"); b.type = "button"; b.style.marginTop = "8px";
+    b.onclick = () => webSearch(q);
+    box.append(b); return;
+  }
+  if (W.busy) { box.append(el("div","muted","Ищу «" + q + "» в Википедии…")); return; }
+  if (W.msg) { box.append(el("div","toast err", W.msg)); return; }
+  if (W.sure) {
+    box.append(el("div","s muted","Это он?"), filmLine(W.sure, "Да, добавить"));
+    const no = el("button","link","Нет, показать другие варианты"); no.type = "button"; no.style.marginTop = "6px"; no.onclick = () => { W.sure = null; renderPickList(); };
+    box.append(no); return;
+  }
+  box.append(el("div","s muted","Ты это имела в виду?"));
+  W.results.slice(0, 6).forEach(it => box.append(filmLine(it, "Добавить")));
 }
 
 function fmtDate(d){
