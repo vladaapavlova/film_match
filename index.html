@@ -116,6 +116,20 @@ h2:first-child{margin-top:0}
 .seg{display:flex;gap:6px;margin-bottom:14px}.seg button{flex:1;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);font:700 14px Manrope,sans-serif;padding:9px;border-radius:12px;cursor:pointer}
 .seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 h3.sub{font:700 14px Unbounded,sans-serif;margin:18px 0 8px}
+.ticket .poster,.winner .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%;pointer-events:none;user-select:none}
+.ticket.has-poster .main{position:relative;background:linear-gradient(to top,rgba(10,12,16,.92) 0%,rgba(10,12,16,.7) 40%,rgba(10,12,16,0) 72%);color:#fff}
+.ticket.has-poster .genre{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.7);background:rgba(10,12,16,.45);align-self:flex-start;padding:3px 10px;border-radius:999px}
+.ticket.has-poster .note{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.ticket.has-poster .stub{position:relative}
+.stamp{z-index:2}
+.winner{position:relative;overflow:hidden}
+.winner.has-poster > :not(.poster){position:relative}
+.winner.has-poster::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(10,12,16,.92),rgba(10,12,16,.35) 60%,rgba(10,12,16,.1));pointer-events:none}
+.winner.has-poster{color:#fff}
+.winner.has-poster > *:not(.poster){z-index:1}
+.thumb{width:36px;height:54px;object-fit:cover;border-radius:6px;flex:none;background:var(--line)}
+.attrib{display:flex;align-items:center;gap:10px;margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.attrib svg{width:96px;height:auto;flex:none}
 .res{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .res .row-item{align-items:flex-start}
 .res .s{margin-top:2px}
@@ -169,6 +183,7 @@ h3.sub{font:700 14px Unbounded,sans-serif;margin:18px 0 8px}
   <section id="tab-plan" hidden><div id="plan"></div></section>
   <section id="tab-add" hidden><div id="add"></div></section>
   <section id="tab-history" hidden><div id="history"></div></section>
+  <footer class="attrib"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 273.42 35.52"><defs><style>.cls-1{fill:url(#linear-gradient);}</style><linearGradient id="linear-gradient" y1="17.76" x2="273.42" y2="17.76" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#90cea1"/><stop offset="0.56" stop-color="#3cbec9"/><stop offset="1" stop-color="#00b3e5"/></linearGradient></defs><title>Asset 3</title><g id="Layer_2" data-name="Layer 2"><g id="Layer_1-2" data-name="Layer 1"><path class="cls-1" d="M191.85,35.37h63.9A17.67,17.67,0,0,0,273.42,17.7h0A17.67,17.67,0,0,0,255.75,0h-63.9A17.67,17.67,0,0,0,174.18,17.7h0A17.67,17.67,0,0,0,191.85,35.37ZM10.1,35.42h7.8V6.92H28V0H0v6.9H10.1Zm28.1,0H46V8.25h.1L55.05,35.4h6L70.3,8.25h.1V35.4h7.8V0H66.45l-8.2,23.1h-.1L50,0H38.2ZM89.14.12h11.7a33.56,33.56,0,0,1,8.08,1,18.52,18.52,0,0,1,6.67,3.08,15.09,15.09,0,0,1,4.53,5.52,18.5,18.5,0,0,1,1.67,8.25,16.91,16.91,0,0,1-1.62,7.58,16.3,16.3,0,0,1-4.38,5.5,19.24,19.24,0,0,1-6.35,3.37,24.53,24.53,0,0,1-7.55,1.15H89.14Zm7.8,28.2h4a21.66,21.66,0,0,0,5-.55A10.58,10.58,0,0,0,110,26a8.73,8.73,0,0,0,2.68-3.35,11.9,11.9,0,0,0,1-5.08,9.87,9.87,0,0,0-1-4.52,9.17,9.17,0,0,0-2.63-3.18A11.61,11.61,0,0,0,106.22,8a17.06,17.06,0,0,0-4.68-.63h-4.6ZM133.09.12h13.2a32.87,32.87,0,0,1,4.63.33,12.66,12.66,0,0,1,4.17,1.3,7.94,7.94,0,0,1,3,2.72,8.34,8.34,0,0,1,1.15,4.65,7.48,7.48,0,0,1-1.67,5,9.13,9.13,0,0,1-4.43,2.82V17a10.28,10.28,0,0,1,3.18,1,8.51,8.51,0,0,1,2.45,1.85,7.79,7.79,0,0,1,1.57,2.62,9.16,9.16,0,0,1,.55,3.2,8.52,8.52,0,0,1-1.2,4.68,9.32,9.32,0,0,1-3.1,3A13.38,13.38,0,0,1,152.32,35a22.5,22.5,0,0,1-4.73.5h-14.5Zm7.8,14.15h5.65a7.65,7.65,0,0,0,1.78-.2,4.78,4.78,0,0,0,1.57-.65,3.43,3.43,0,0,0,1.13-1.2,3.63,3.63,0,0,0,.42-1.8A3.3,3.3,0,0,0,151,8.6a3.42,3.42,0,0,0-1.23-1.13A6.07,6.07,0,0,0,148,6.9a9.9,9.9,0,0,0-1.85-.18h-5.3Zm0,14.65h7a8.27,8.27,0,0,0,1.83-.2,4.67,4.67,0,0,0,1.67-.7,3.93,3.93,0,0,0,1.23-1.3,3.8,3.8,0,0,0,.47-1.95,3.16,3.16,0,0,0-.62-2,4,4,0,0,0-1.58-1.18,8.23,8.23,0,0,0-2-.55,15.12,15.12,0,0,0-2.05-.15h-5.9Z"/></g></g></svg><span>This product uses the TMDB API but is not endorsed or certified by TMDB. Постеры: The Movie Database.</span></footer>
 </div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -229,7 +244,8 @@ const film = id => S.films.find(f => f.id === id);
 const hist = (p, fid) => { const h = S.history.find(x => x.player === p && x.filmId === fid); return h ? h.status : null; };
 const blocked = fid => Object.keys(PLAYERS).some(p => ["seenno","hardno"].includes(hist(p, fid)));
 function current(){
-  return S.evenings.filter(e => e.status !== "cancelled").sort((a,b) => (b.createdAt||0) - (a.createdAt||0))[0] || null;
+  const last = S.evenings.slice().sort((a,b) => (b.createdAt||0) - (a.createdAt||0))[0];
+  return last && last.status !== "cancelled" ? last : null;
 }
 const vote = (ev, p, fid) => S.votes.find(v => v.ev === ev.id && v.round === ev.round && v.player === p && v.filmId === fid);
 function deckFor(ev, p){
@@ -325,6 +341,14 @@ function renderTonight(ev, force){
   const h = el("div","evhead");
   const b = el("b", null, fmtDate(ev.date) + (ev.status === "round" ? ", раунд " + ev.round : ""));
   h.append(b); if (ev.mood) h.append(el("div", null, ev.mood));
+  if (ev.status !== "done") {
+    const c = el("button","link","Отменить вечер"); c.type = "button"; c.style.marginTop = "6px";
+    c.onclick = async () => {
+      if (!confirm("Отменить вечер " + fmtDate(ev.date) + "? Он закончится у вас обоих.")) return;
+      try { await updateDoc(doc(db, "evenings", ev.id), { status:"cancelled", cancelledBy:S.me || "" }); } catch (e) { err(e); }
+    };
+    h.append(c);
+  }
   head.append(h);
 
   if (ev.status === "done") { setButtons(null); return winner(deck, film(ev.winner)); }
@@ -393,8 +417,15 @@ function more(f){
   a.href = f.link || ("https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(f.title + (f.year ? " " + f.year : "")));
   a.addEventListener("pointerdown", e => e.stopPropagation()); return a;
 }
+const IMG = (path, size) => "https://image.tmdb.org/t/p/" + (size || "w500") + path;
+function posterEl(f){
+  const i = el("img","poster"); i.src = IMG(f.poster); i.alt = ""; i.draggable = false; i.loading = "lazy";
+  i.onerror = () => { const host = i.parentElement; i.remove(); if (host) host.classList.remove("has-poster"); };
+  return i;
+}
 function ticket(f, left, under, ev){
-  const t = el("article","ticket" + (under ? " under" : "")); paint(t, f);
+  const t = el("article","ticket" + (under ? " under" : "") + (f.poster ? " has-poster" : "")); paint(t, f);
+  if (f.poster) t.append(posterEl(f));
   const m = el("div","main");
   if (f.genre) m.append(el("div","genre", f.genre));
   if (f.year) m.append(el("div","year", f.year));
@@ -440,7 +471,8 @@ document.addEventListener("keydown", e => {
 function winner(deck, f){
   deck.textContent = "";
   if (!f) return;
-  const w = el("div","winner"); paint(w, f);
+  const w = el("div","winner" + (f.poster ? " has-poster" : "")); paint(w, f);
+  if (f.poster) w.append(posterEl(f));
   w.append(el("div","lead","Решено, смотрим"), el("h3","title", f.title), el("p","who", [f.year, f.genre].filter(Boolean).join(". ")), more(f));
   deck.append(w);
 }
@@ -494,7 +526,10 @@ function renderPickList(){
     const w = tag(f); if (w) t.append(el("div","s", "⚠ " + w));
     const cb = el("input"); cb.type = "checkbox"; cb.checked = p.sel.includes(f.id); cb.style.width = "20px"; cb.style.height = "20px";
     cb.onchange = () => { const i = p.sel.indexOf(f.id); if (i >= 0) p.sel.splice(i, 1); else p.sel.push(f.id); updCount(); };
-    r.append(t, cb); box.append(r);
+    const lf = el("div"); lf.style.display = "flex"; lf.style.gap = "10px"; lf.style.alignItems = "center";
+    if (f.poster) { const th = el("img","thumb"); th.src = IMG(f.poster, "w92"); th.alt = ""; th.loading = "lazy"; th.onerror = () => th.remove(); lf.append(th); }
+    lf.append(t);
+    r.append(lf, cb); box.append(r);
   });
 }
 function renderPlan(){
@@ -604,9 +639,10 @@ async function searchFilms(q, year){
     [...dir, ...cast, ...gen].forEach(i => refs.add(i));
     const L = x.labels || {}, D = x.descriptions || {};
     const kp = val("P2603")[0];
+    const tmdb = val("P4947")[0];
     const title = clean((L.ru || L.en || {}).value), year = years.length ? String(Math.min(...years)) : "";
     return { id:x.id, title, desc:clean((D.ru || D.en || {}).value), year, dir, cast, gen, ruwiki: x.sitelinks && x.sitelinks.ruwiki && x.sitelinks.ruwiki.title, sites: Object.keys(x.sitelinks || {}).length,
-      kp: kp ? String(kp) : "", link: kp ? "https://www.kinopoisk.ru/film/" + kp + "/" : "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title + (year ? " " + year : "")) };
+      kp: kp ? String(kp) : "", tmdb: tmdb ? String(tmdb) : "", link: kp ? "https://www.kinopoisk.ru/film/" + kp + "/" : "https://www.kinopoisk.ru/index.php?kp_query=" + encodeURIComponent(title + (year ? " " + year : "")) };
   });
   const lab = {}; const arr = [...refs];
   for (let i = 0; i < arr.length; i += 50) {
@@ -729,7 +765,7 @@ function confirmCard(it){
   save.onclick = async () => {
     if (!it.genres.length) { setStatus("Выбери хотя бы один жанр"); return; }
     save.disabled = true;
-    const { fid, data } = filmData(it);
+    const { fid, data } = filmData({ ...it, poster: await tmdbPoster(it.tmdb) });
     try {
       await setDoc(doc(db, "films", fid), data);
       if (it.toEvening && ev && ev.status === "round" && ev.round === 1) await updateDoc(doc(db, "evenings", ev.id), { pool: arrayUnion(fid) });
@@ -743,12 +779,23 @@ function confirmCard(it){
   return c;
 }
 
+const TMDB_KEY = "874844a8570991cd738a6480b2e1f377";
+async function tmdbPoster(id){
+  if (!id) return "";
+  for (const host of ["https://api.tmdb.org","https://api.themoviedb.org"]) {
+    try {
+      const r = await fetch(host + "/3/movie/" + id + "?language=ru-RU&api_key=" + TMDB_KEY);
+      if (r.ok) { const j = await r.json(); if (j.poster_path) return j.poster_path; return ""; }
+    } catch (e) {}
+  }
+  return "";
+}
 function filmData(it){
   const fid = "wd-" + it.id;
   const pal = PALETTES[[...it.id].reduce((a, ch) => a + ch.charCodeAt(0), 0) % PALETTES.length];
   const gs = it.genres.length ? it.genres : ["драма"];
   const data = { title:it.title, year:it.year, genre: gs.map((g, i) => i ? g : g[0].toUpperCase() + g.slice(1)).join(", "), director:it.director || "", cast:it.castT || "", note:clean(it.note || ""),
-    tags:{ genres:gs, tone:it.tone || guessTone(gs) }, wikidata:it.id, link:it.link, kinopoisk:it.kp || "", bg:pal[0], ink:pal[1], accent:pal[2], order:1000, createdAt:Date.now(), by:S.me || "" };
+    tags:{ genres:gs, tone:it.tone || guessTone(gs) }, wikidata:it.id, link:it.link, kinopoisk:it.kp || "", tmdb:it.tmdb || "", poster:it.poster || "", bg:pal[0], ink:pal[1], accent:pal[2], order:1000, createdAt:Date.now(), by:S.me || "" };
   return { fid, data };
 }
 /* quick add from the picker */
@@ -770,7 +817,7 @@ async function quickAdd(it, b){
   if (S.films.some(f => f.wikidata === it.id)) { const f = S.films.find(f => f.wikidata === it.id); if (!S.plan.sel.includes(f.id)) S.plan.sel.push(f.id); S.plan.find = ""; resetW(); renderPlan(); return; }
   if (b) { b.disabled = true; b.textContent = "Добавляю…"; }
   const g = mapGenres(it);
-  const { fid, data } = filmData({ ...it, genres:g, tone:guessTone(g), note: await wikiSummary(it.ruwiki) });
+  const { fid, data } = filmData({ ...it, genres:g, tone:guessTone(g), note: await wikiSummary(it.ruwiki), poster: await tmdbPoster(it.tmdb) });
   try {
     await setDoc(doc(db, "films", fid), data);
     if (!S.plan.sel.includes(fid)) S.plan.sel.push(fid);
